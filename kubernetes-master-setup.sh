@@ -61,7 +61,8 @@ firewall-cmd --permanent --add-port=10250/tcp || true
 firewall-cmd --reload || true
 
 echo "========== Initialize Cluster =========="
-kubeadm init --pod-network-cidr=192.168.0.0/16
+#kubeadm init --pod-network-cidr=192.168.0.0/16
+kubeadm init --apiserver-advertise-address=192.168.56.14 --pod-network-cidr=10.244.0.0/16
 
 echo "========== Configure kubectl =========="
 mkdir -p $HOME/.kube
