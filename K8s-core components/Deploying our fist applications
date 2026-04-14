@@ -1,0 +1,61 @@
+1) Explain what is od 
+
+A pod is smallest unit of deployment 
+A pod can contain one or more containers 
+Mostly we see applications deployed on pod with a single container 
+Pod shares network space and storage space 
+That is, containers inside same pod can communicate with each other using localhost becase they are sharing 
+the network space, pod gates and private IP .This IP is reachable within cluster from any node.
+
+2) What are the different method we can deploy the applications?
+We can deploy applicaitons using imperative approach or declarative approach.
+In declarative approach, we pull all the details in YAML decument.and we pass it on to kubernetes cluster, cluster 
+takes care of creating the resources accordingly. In imperative approach, we put everything in the command itself.
+
+3) How will you deply application in imperative approach?
+# kubectl run nginx --image='nginx:latest' --port=80 
+# kubectl get pods -> To check the status
+# kubectl get pods -o wide -> To see more details about the pod 
+Note: if we want to access this pod from my local laptop, which is not inside kubernetes cluster, it is 
+not possible. if we want to access this pod from outside we need to expose application to the 
+out side world, to expose out side we can use service or ingress controllers.
+
+Temporarily we can expose this appllication via port mapping 
+# kubectl port-forward pod/nginx 8080:80
+localhost port 8080
+nginx is listening on 80 
+After running this command we can put localhost:8080 --> The traffic is routed to nginx which is running
+inside kubernetes cluster. This is only for testing purpose, This is not the way to expose applicaitons 
+to the outside world in real world situations.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
