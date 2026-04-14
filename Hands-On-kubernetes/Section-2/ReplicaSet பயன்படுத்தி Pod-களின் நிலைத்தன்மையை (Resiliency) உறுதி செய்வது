@@ -1,0 +1,9 @@
+Replicaset is an wrapper on top of a POD 
+
+it makes pod resilient , if any of the pod crashes out of 3 pods let say 2 pods crashed for some reasons 
+Replicaset recreates those two parts to meet 3 as a disired state 
+
+# kubectl create rs nginx --image=nginx:1.14.2 --replicas=3 --dry-run=client -o yaml > nginx-rs.yaml
+it will create yaml file with all specificaitons 
+
+
