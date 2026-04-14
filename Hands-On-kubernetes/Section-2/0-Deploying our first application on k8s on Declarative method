@@ -1,0 +1,29 @@
+# kubectl run nginx --image='nginx:latest' --port=80 --dry-run=client -o yaml> test.yaml
+To expose the port 
+# kubectl expose pod nginx --port=80 --type=NodePort --dry-run=client -o yaml > svc.yaml
+
+The above command will create yaml file with specified configuration after that 
+
+# kubectl create -f nginx.yml --> The command itself we are not giving all the details , it will detect it from yaml file , ceate a resource and read every thing from
+yaml document. 
+To check the status 
+# kubectl get pod 
+TO test and validate 
+# kubectl port-forward pod/nginx 8080:80 
+
+Suppose something went wrong we need to troubeshoot 
+1)  # kubectl logs nginx -- The log comming from nginx pod 
+# kubectl logs nginx --previous
+
+2) sometime we need to go inside the pod to troubleshooting 
+# kubectl  exec -it nginx -- bash 
+> ls 
+> exit
+
+
+  
+
+
+
+
+
