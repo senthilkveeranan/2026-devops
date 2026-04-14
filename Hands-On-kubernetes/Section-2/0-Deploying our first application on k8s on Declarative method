@@ -20,6 +20,13 @@ Suppose something went wrong we need to troubeshoot
 > ls 
 > exit
 
+TO delete the pod 
+# kubectl delete pod nginx 
+
+
+
+
+
 
   
 
