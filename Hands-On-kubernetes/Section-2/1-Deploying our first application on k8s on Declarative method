@@ -1,3 +1,6 @@
+In declarative approach we put all the details in yaml document and we pass it on to kuberntes cluster , Cluser takes care 
+of creating the resources accourdingly.
+
 # kubectl run nginx --image='nginx:latest' --port=80 --dry-run=client -o yaml> test.yaml
 To expose the port 
 # kubectl expose pod nginx --port=80 --type=NodePort --dry-run=client -o yaml > svc.yaml
