@@ -1,0 +1,32 @@
+A Deployment is high level obstraction that manages replicaset and pod 
+The key features of deployment is Rolling updaes - meaning we already have an application running with V1   having 10 copies 
+Now we want to Rollout V2 
+What happends in Rolling update , it will not recreate all 10 at once This causes downtime rather 
+its going to gradually update all the pods running inside the kubernetes cluster for the specific deployment 
+
+with the help of rolling update we achive zero downtime deployments 
+That feature is part of deployment objects and also easy Rollback , if something goes wrong in the deployment with simeple 
+command # kubectl rollout undo <deployment-name> , we can easily rollback to its previouse stable version.
+
+# kubectl create deployment nginx --image=nginx:latest --replicas=3 --dry-run=client -o yaml > nginx-deployment.yaml
+
+# kubectl create -f nginx-deployment.yaml  ( Create )
+# kubectl apply -f nginx-deployment.yaml ( Create or Update ) 
+
+# kubectl apply -f pyapp-deployment.yaml
+# kubectl get pods
+# kubectl get rs
+# kubectl get deploy
+# kubectl port-forward deployment/pyapp 8080:8000
+
+Now Change the pyapp-deployment.yaml file chane the version from V1 to V2 
+
+# kubectl apply -f pyapp-deployment.yaml  --> New V2 version got applied in Rolling update , done gradually not whole 
+Suppose if you face any issue very easily we can rollout previouse verison 
+
+# kubectl rollout undo deployment pyapp
+# kubectl port-forward deployment/pyapp 8080:8000
+# kubectl get pods now access the URL via localhost:8080  validate 
+
+
+
