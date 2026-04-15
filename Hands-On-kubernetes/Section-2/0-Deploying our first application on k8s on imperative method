@@ -1,4 +1,4 @@
-1) Explain what is od 
+1) Explain what is Pod 
 
 A pod is smallest unit of deployment 
 A pod can contain one or more containers 
