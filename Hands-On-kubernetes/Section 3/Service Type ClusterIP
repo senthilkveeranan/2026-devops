@@ -1,0 +1,18 @@
+There are different services provided by kubernetes 
+Service Types:
+==============
+1) ClusterIP 
+When you create service by choosing type ClusterIP, what exactly it mans.You can access this service with in this cluster .
+It get one private IP and this is accessible only within the cluster.
+You can not access service type CLusterIP from the out side world.
+
+To create service yaml in dry run method
+
+# kubectl expose deployment pyapp --name=pyapp-service --port=80 --target-port=8000 --protocol=TCP --type=ClusterIP --dry-run=client -o yaml > pyapp-svc.yaml
+# kubectl appl -f pyapp-svc.yaml
+
+when should we use ClusterIP:
+=============================
+Suppose we deploying database inside the cluster . Obviousely this database must be accessible only within the cluster. No one from outside can access database directly .
+for this we want a sable endpoint, So create a service of type clusterIP so that application running inside the cluster will access this database. No one from outside 
+the cluster can directly access database.
