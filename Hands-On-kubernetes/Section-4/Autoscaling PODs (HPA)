@@ -1,0 +1,19 @@
+Horizontal Pod Autoscaler 
+
+Which is responsible for automatically scalling pods that are running benind service, Before we getinto horizontal pod autoscaler, we need to understand what is 
+scaling.
+Autoscaling:
+============
+When traffic increses automaticaly, the resources like CPU and memory has to increase to observe the extra load, This is nothing but scalling the application.
+This can be done in couple of ways 
+1) we can maintain same number of PODs lets say only two, just incplirease the CPU and memory of the PODs = vertical scaling
+2) Instead of increasing CPU and memory of existing PODs, in this case two PODs we can add more PODs  = Horizantal scaling 
+
+How Horizantal pod Auto scaler functions:
+=========================================
+Metrics Server --> Horizantal Pod Autoscaler --> Deployment --> ReplicaSet --> Pods 
+  1) It reads POD metricas from metric Server
+  2) If metrics says we need to increase number of PODs, it sents scale instructions to the Deployment
+  3) Deployment intrun manages replicasets, Replicaset creates that additional POD
+This is How Horizantal pod Autoscaler functionis.
+
