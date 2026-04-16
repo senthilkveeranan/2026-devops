@@ -1,0 +1,35 @@
+NotePort allows us to access the application running inside kubernetes cluster from the outside world.
+When a pod is  deployed inside kubernetes cluster, we can't access it directly from the outside because pod gets private IP address which is 
+accessible within the cluster. 
+TO expose applications to the outside world, one way is service type NodePort.
+Kubernetes open this NodePort in all the nodes inside the cluster 
+That is specific rage for NotePport= 30000 - To - 32767
+
+# kubectl expose deployment pyapp --name=pyapp-service --type=NodePort --port=80 --target-port=8000 --dry-run=client -o yaml > pyapp-svc-NodePort.yaml
+# kubectl apply -f pyapp-svc-NodePort.yaml
+# ❯ kubectl get svc -o wide
+NAME            TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE     SELECTOR
+kubernetes      ClusterIP   10.96.0.1        <none>        443/TCP        16h     <none>
+pyapp-service   NodePort    10.111.188.203   <none>        80:32134/TCP   5m15s   app=pyapp
+
+ kubectl get nodes -o wide
+NAME                 STATUS   ROLES           AGE   VERSION    INTERNAL-IP      EXTERNAL-IP   OS-IMAGE                      KERNEL-VERSION                 CONTAINER-RUNTIME
+master.example.com   Ready    control-plane   16h   v1.29.15   192.168.56.101   <none>        Rocky Linux 9.7 (Blue Onyx)   5.14.0-362.13.1.el9_3.x86_64   containerd://2.2.3
+node1.example.com    Ready    <none>          15h   v1.29.15   192.168.56.102   <none>        Rocky Linux 9.7 (Blue Onyx)   5.14.0-362.13.1.el9_3.x86_64   containerd://2.2.3
+node2.example.com    Ready    <none>          15h   v1.29.15   192.168.56.103   <none>        Rocky Linux 9.7 (Blue Onyx)   5.14.0-362.13.1.el9_3.x86_64   containerd://2.2.3
+
+Now access from out side kubernetes cluster http://192.168.56.101:32134/  
+
+and To Valide in side cluter 
+
+==========================================================================================================
+curl http://192.168.56.103:32134
+
+        <html>
+            <head><title>Python Docker App</title></head>
+            <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px;">
+                <h1 style="color: black;">Hello from Flask on Kubernetes! 🚀</h1>
+            </body>
+        </html>
+==========================================================================================================
+
