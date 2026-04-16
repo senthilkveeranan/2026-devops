@@ -17,3 +17,113 @@ Metrics Server --> Horizantal Pod Autoscaler --> Deployment --> ReplicaSet --> P
   3) Deployment intrun manages replicasets, Replicaset creates that additional POD
 This is How Horizantal pod Autoscaler functionis.
 
+
+If we want to scale manually 
+# kubectl scale deployment/pyapp --replicas=6 
+This is manually scaling pods but in real world when we have larger environment, we do have many microservices, we can't really sit and monitor the matrics and 
+we can't run scale command manually 
+
+Instead what we will do is we want something which monitors and take decision of scaling, like scaling out noting but increasing number of replicas, scaling down, 
+reducing number of replicase when trafic reduces. 
+
+# kubectl scale deployment/pyapp --replicas=2 
+
+Harizontal Auto scaling .
+1) We must enable matics server, Otherwise hrizontal pod auto scaler can not read Pod metrics . IF it can not read Pod metrics it can not perform automatic scaling.
+2) In the deployment file under Pod specification, we need to explicitly mention the resource CPU and Memory 
+Thease two points are very important for horizantal Pod Auto scaling to work.
+
+To install metric server 
+#  Install Metrics Server (Recommended)
+# kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+# kubectl get pods -n kube-system 
+
+
+
+
+❯ kubectl apply -f pyapp-deployment.yaml
+deployment.apps/pyapp created
+❯ kubectl apply -f pyapp-svc.yaml
+service/pyapp-service created
+❯ kubectl apply -f pyapp-hpa.yaml
+deployment.apps/pyapp configured
+horizontalpodautoscaler.autoscaling/pyapp-hpa created
+
+Use with Kubernetes (HPA Test)
+#  wrk -t2 -c50 -d60s http://192.168.11.90:32134 
+
+
+Start small:
+
+# wrk -t1 -c10 -d30s
+
+Example:
+========
+Current Status:
+
+kubectl get hpa
+NAME        REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+pyapp-hpa   Deployment/pyapp   2%/50%    2         10        2          32m
+
+To increase the CPU work load:
+================================
+
+# wrk -t2 -c50 -d60s http://192.168.56.103:31220 
+
+Here 192.168.56.103 --> Node IP 
+31220 - kubectl get svc pyapp-service -o wide  - in this out put get the Port details 
+
+Ater running this command see the pods and hap count get increased (Auto scall in )
+# kubectl get hpa -o wide - Replica count get increased 
+# kubectl get pods -o wide - pods count get increased automatically that is called HPA 
+
+
+Now the pods count is 10 that is the maximum , if we want to reduce manually use the below command 
+# kubectl scale deployment/pyapp --replicas=3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
