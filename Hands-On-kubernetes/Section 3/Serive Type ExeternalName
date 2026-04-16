@@ -1,0 +1,8 @@
+  ExternalName is a special type of service in Kubernetes, This will not create any real service, it doesn't do any loadbalancing, Rather it acts like a DNS lookup 
+
+For Example: We have API running outside kubernetes cluster, its DNS name is API.javaname.in when i create service type external name, it provides DNS record information
+in this case i am givin API.javahome.in 
+SO what happens when any pod sends requests to external name, what happens it provides the DNS name of the application. Then POD directory communicates with API endpoints
+
+
+
