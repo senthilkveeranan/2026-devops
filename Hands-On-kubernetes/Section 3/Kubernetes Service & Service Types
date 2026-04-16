@@ -1,0 +1,53 @@
+Why should we use kubernetes service in kubernetes cluster?
+For example: 
+    In k8s cluster lets take two applications App1 and App2 
+App1 wants to connect with App2, Here it can use IP address for communicaiton with App2 , But there is a problem, 
+The problem is the IP address of the application 2 can change because in k8s cluster parts are epumeral (only a short period of time.)
+They are designed for recreation often so IP is going to change, Now App1 can not keep track of those changing IPs dynamically.
+its very difficult.
+
+So when these IP can change:
+=============================
+  1) Lets say there is a node which is running this pod, we are tacking out that node for maitanance, what we should do , 
+evict all the pods running on this node, shecuduled them into different node.in that case IP will change. 
+
+  2) The secound senario, we may have autoscalling in place, so lets say now we have three instances on Pods
+After some time it can become 5 again then the load decreases it can become 2 and 3 After some time the IP address can be 
+completely different.
+
+  3) Its very common , when we do new release, right lets say currently we are running version 001 for App2 we prepare release 002.
+when we rollout this new feature using deployment, lets say all pods are terminated and replaced
+
+These are the reasons why IP address of a pod can change, Thats the reason App1 can not directly talk to App2 using its IP address, Which 
+is going to chane very ofetn. 
+That's the reason what kubernetes has done it came up with concept service.
+
+So the service here its not resource like a pod, service will never go down,  In the background service is simply a network rule 
+with stable IP address.
+
+How it works the app1 will not directly talk to App2 , instead it talk to its service on its IP address or using service name.
+
+What are the features offered by service: 
+=========================================
+For example to achive high availability and scalability, we added more replicase, those pods can be load balanced, That can be done 
+by a service.
+
+1) provide stable network endpoints 
+2) Load balancing set of pods 
+3) can expose application to the out side world
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
