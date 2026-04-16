@@ -1,0 +1,6 @@
+This type of service also allows the application running in kubernetes cluster to be accessed from the outside world 
+
+The major difference between NodePort and LoadBalancer is 
+in NodePort==>  CLient access the service directly on the port, which is open on ever node inside the cluster
+in LoadBalanger ==> kubernetes will provision a cloud native load balancer, which will take care of load balancing all nodes iniside the cluster. if we use aws it uses 
+amazon's load balancer etc ..etc..
