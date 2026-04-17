@@ -5,7 +5,7 @@ A pod can contain one or more containers
 Mostly we see applications deployed on pod with a single container 
 Pod shares network space and storage space 
 That is, containers inside same pod can communicate with each other using localhost becase they are sharing 
-the network space, pod gates and private IP .This IP is reachable within cluster from any node.
+the network space, pod gets and private IP .This IP is reachable within cluster from any node.
 
 2) What are the different method we can deploy the applications?
 We can deploy applicaitons using imperative approach or declarative approach.
