@@ -1,4 +1,4 @@
-Why should we use kubernetes service in kubernetes cluster?
+Why should we use service in kubernetes cluster?
 For example: 
     In k8s cluster lets take two applications App1 and App2 
 App1 wants to connect with App2, Here it can use IP address for communicaiton with App2 , But there is a problem, 
