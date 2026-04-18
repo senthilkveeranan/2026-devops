@@ -1,6 +1,6 @@
 A Deployment is high level obstraction that manages replicaset and pod 
 The key features of deployment is Rolling updaes - meaning we already have an application running with V1   having 10 copies 
-Now we want to Rollout V2 
+Now we want to Rollout (update or launch) V2 
 What happends in Rolling update , it will not recreate all 10 at once This causes downtime rather 
 its going to gradually update all the pods running inside the kubernetes cluster for the specific deployment 
 
