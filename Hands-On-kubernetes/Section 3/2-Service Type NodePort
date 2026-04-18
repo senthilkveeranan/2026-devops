@@ -1,4 +1,4 @@
-NotePort allows us to access the application running inside kubernetes cluster from the outside world.
+NotePort allows us to access the application to access from the outside world.
 When a pod is  deployed inside kubernetes cluster, we can't access it directly from the outside because pod gets private IP address which is 
 accessible within the cluster. 
 TO expose applications to the outside world, one way is service type NodePort.
