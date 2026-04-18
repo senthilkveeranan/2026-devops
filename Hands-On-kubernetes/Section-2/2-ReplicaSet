@@ -1,13 +1,11 @@
 Replicaset is an wrapper on top of a POD 
 
-it makes pod resilient , if any of the pod crashes out of 3 pods let say 2 pods crashed for some reasons 
+it makes pod resilient (மீளுந்திறன்=== again comes back ) , if any of the pod crashes out of 3 pods let say 2 pods crashed for some reasons 
 Replicaset recreates those two parts to meet 3 as a disired state 
 
-# kubectl create rs nginx --image=nginx:1.14.2 --replicas=3 --dry-run=client -o yaml > nginx-rs.yaml
-it will create yaml file with all specificaitons 
+we can not create dry-run method for replicaset sicne we are creating deployment via dry-run method to create yaml fie 
+and replace with replicaset in yaml file with deployment in kind 
 
-Actually when we create replicaset via dry-run method no --image option since its wrong so 
-we can create deployment via --image option and we can modify the yaml file as replicaset instead of deployment 
 # kubectl create deployment nginx --image=nginx:latest --replicas=3 --dry-run=client -o yaml > nginx-rs.yaml
 
 To create replicaset via declarative methods 
@@ -22,7 +20,7 @@ if we delete single pod it will recreate again and bring to the desired state
 # kubectl get pods 
 
 if we want to deleate all we need to delete replicaset instead of pod 
-# kubectl delete rs nginx
+# kubectl delete rs nginx-rs
 
 
 
