@@ -1,7 +1,7 @@
 
 
 
-kubeadm init --apiserver-advertise-address=192.168.56.101 --pod-network-cidr=10.244.0.0/16
+kubeadm init --apiserver-advertise-address=192.168.56.101 --pod-network-cidr=10.244.0.0/16   --- if you are using flannal use this pod address 
 
 After Init (Very Important)
 
@@ -12,8 +12,24 @@ cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config
 
 
+kubeadm init --apiserver-advertise-address=192.168.56.60 --pod-network-cidr=192.168.0.0/16   ---- if you are using calico use this pod address 
+
 🌐 Install Network Plugin (Calico)
 kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
 Get Join Command (Worker Nodes)
 kubeadm token create --print-join-command
+
+
+rm -rf /etc/cni/net.d
+rm -rf $HOME/.kube
+rm -rf /var/lib/etcd
+
+systemctl daemon-reload
+systemctl restart kubelet
+systemctl restart containerd
+
+
+
+
+
