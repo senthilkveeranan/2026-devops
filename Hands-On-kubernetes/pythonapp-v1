@@ -1,0 +1,39 @@
+# k8s_validate_v1.py
+
+from kubernetes import client, config
+from kubernetes.client.rest import ApiException
+
+# Load kubeconfig from ~/.kube/config
+config.load_kube_config()
+
+# Namespace and deployment name
+NAMESPACE = "default"
+DEPLOYMENT_NAME = "nginx-deployment"
+
+try:
+    apps_v1 = client.AppsV1Api()
+
+    # Read deployment
+    deployment = apps_v1.read_namespaced_deployment(
+        name=DEPLOYMENT_NAME,
+        namespace=NAMESPACE
+    )
+
+    desired = deployment.spec.replicas
+    available = deployment.status.available_replicas
+
+    print(f"Deployment Name : {DEPLOYMENT_NAME}")
+    print(f"Namespace       : {NAMESPACE}")
+    print(f"Desired Replicas: {desired}")
+    print(f"Available Pods  : {available}")
+
+    if desired == available:
+        print("STATUS : Deployment validation SUCCESS")
+    else:
+        print("STATUS : Deployment validation FAILED")
+
+except ApiException as e:
+    print(f"Kubernetes API Error: {e}")
+
+except Exception as ex:
+    print(f"General Error: {ex}")
