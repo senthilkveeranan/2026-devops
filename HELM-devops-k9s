@@ -1,0 +1,339 @@
+Step 1: NFS Server Setup (kmaster1)
+===================================
+dnf install -y nfs-utils
+
+mkdir -p /nfs-storage
+
+chmod 777 /nfs-storage
+
+cat <<EOF > /etc/exports
+/nfs-storage *(rw,sync,no_root_squash,no_subtree_check)
+EOF
+
+exportfs -rav
+
+systemctl enable --now nfs-server
+
+showmount -e localhost
+
+Expected:
+
+Export list for 192.168.56.101:
+/nfs-storage *
+
+Step 2: Worker Nodes NFS Client
+================================
+அனைத்து nodes-லும்:
+
+dnf install -y nfs-utils
+
+Test:
+
+showmount -e 192.168.56.101
+
+Expected:
+
+Export list for 192.168.56.101:
+/nfs-storage *
+
+Step 3: StorageClass + Provisioner YAML
+========================================
+nfs-provisioner.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nfs-provisioner
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nfs-subdir-external-provisioner
+  namespace: nfs-provisioner
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nfs-subdir-external-provisioner-runner
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get","list","watch","create","delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get","list","watch","update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get","list","watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create","update","patch"]
+  - apiGroups: [""]
+    resources: ["services","endpoints","pods","nodes"]
+    verbs: ["get","list","watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: run-nfs-subdir-external-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: nfs-subdir-external-provisioner
+    namespace: nfs-provisioner
+roleRef:
+  kind: ClusterRole
+  name: nfs-subdir-external-provisioner-runner
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-subdir-external-provisioner
+  namespace: nfs-provisioner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-subdir-external-provisioner
+  template:
+    metadata:
+      labels:
+        app: nfs-subdir-external-provisioner
+    spec:
+      serviceAccountName: nfs-subdir-external-provisioner
+      containers:
+      - name: nfs-subdir-external-provisioner
+        image: registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+        env:
+        - name: PROVISIONER_NAME
+          value: k8s-sigs.io/nfs-subdir-external-provisioner
+        - name: NFS_SERVER
+          value: 192.168.56.101
+        - name: NFS_PATH
+          value: /nfs-storage
+        volumeMounts:
+        - name: nfs-client-root
+          mountPath: /persistentvolumes
+      volumes:
+      - name: nfs-client-root
+        nfs:
+          server: 192.168.56.101
+          path: /nfs-storage
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-client
+provisioner: k8s-sigs.io/nfs-subdir-external-provisioner
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+
+kubectl apply -f nfs-provisioner.yaml
+kubectl get pods -n nfs-provisioner
+
+Step 5: PVC Test YAML
+=====================
+nfs-pvc-test.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-test-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nfs-test-pod
+spec:
+  containers:
+  - name: test
+    image: nginx
+    volumeMounts:
+    - name: data
+      mountPath: /usr/share/nginx/html
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: nfs-test-pvc
+
+
+kubectl apply -f nfs-pvc-test.yaml
+kubectl get pvc
+kubectl get pv
+kubectl get pods
+
+Make StorageClass Default
+=========================
+
+kubectl patch storageclass nfs-client \
+-p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+kubectl get sc 
+
+இந்த commands-ஐ kworker1 அல்லது kworker2 node-ல் run செய்ய வேண்டும்.
+===========================================================================  
+
+mkdir -p /mnt/test
+
+mount -t nfs 192.168.56.101:/nfs-storage /mnt/test
+
+df -h | grep nfs
+
+some times அதனால் Provisioner Leader ஆக முடியவில்லை, PVC Pending-ல் உள்ளது.
+=====================================================================================
+Fix RBAC
+
+# vi nfs-rbac-fix.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: nfs-provisioner
+  name: leader-locking-nfs-provisioner
+rules:
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get","list","watch","create","update","patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: leader-locking-nfs-provisioner
+  namespace: nfs-provisioner
+subjects:
+- kind: ServiceAccount
+  name: nfs-subdir-external-provisioner
+  namespace: nfs-provisioner
+roleRef:
+  kind: Role
+  name: leader-locking-nfs-provisioner
+  apiGroup: rbac.authorization.k8s.io
+
+kubectl apply -f nfs-rbac-fix.yaml
+Restart Provisioner"
+===================
+kubectl rollout restart deployment nfs-subdir-external-provisioner -n nfs-provisioner
+
+validate :
+kubectl get pvc 
+kubectl get pv
+
+install Jenkins with NFS StorageClass
+======================================
+helm install jenkins jenkins/jenkins \
+  --namespace jenkins \Step 1: NFS Server Setup (kmaster1)
+  --create-namespace \
+  --set controller.persistence.enabled=true \
+  --set controller.persistence.storageClass=nfs-client \
+  --set controller.persistence.accessMode=ReadWriteMany \
+  --set controller.persistence.size=10Gi
+
+kubectl get pvc -n jenkins 
+kubectl get pv -n jenkins 
+kubectl get pods -n jenkins
+kubectl get sc 
+
+Jenkins PVC Check
+=================
+[root@kmaster1 ~]# kubectl get pvc -n jenkins
+NAME      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+jenkins   Bound    pvc-d5034dbe-1cb4-4a62-baf2-66c8a027198f   8Gi        RWO            nfs-client     <unset>                 12h
+
+Method 2 - NodePort
+=====================
+Service-ஐ NodePort ஆக மாற்றவும்:
+
+kubectl patch svc jenkins -n jenkins -p '{"spec":{"type":"NodePort"}}'
+kubectl get pods -n jenkins
+kubectl get svc -n jenkins
+kubectl get secret -n jenkins jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 -d
+echo
+
+Initial Admin Password
+kubectl get secret -n jenkins jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 -d
+echo
+
+Admin user name:  admin
+
+helm uninstall jenkins -n jenkins
+
+
+Tomcat setup:
+=============
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+helm repo update
+
+
+helm install tomcat bitnami/tomcat \
+  --namespace tomcat \
+  --create-namespace \
+  --set service.type=NodePort \
+  --set persistence.enabled=true \
+  --set persistence.storageClass=nfs-client
+if issue persists add the below argument 
+  --set readinessProbe.enabled=false
+
+kubectl get pods,svc,pvc -n tomcat
+
+Get Tomcat URL
+kubectl get svc -n tomcat
+
+
+
+
+Install NGINX Ingress:
+======================
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+
+helm repo update
+
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  -n ingress-nginx \
+  --create-namespace
+
+
+
+
+
+Grafana URL
+
+Grafana service-ஐயும் பார்க்க:
+
+kubectl get svc -n monitoring | grep grafana
+
+NodePort ஆக மாற்ற:
+
+kubectl patch svc monitoring-grafana \
+-n monitoring \
+-p '{"spec":{"type":"NodePort"}}'
+
+Password:
+
+kubectl get secret -n monitoring monitoring-grafana \
+-o jsonpath="{.data.admin-password}" | base64 -d
+echo
+
+
+
+
+
+
+
+
+
