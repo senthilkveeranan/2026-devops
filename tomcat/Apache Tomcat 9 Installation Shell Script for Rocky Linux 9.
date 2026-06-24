@@ -1,0 +1,88 @@
+#!/bin/bash
+
+set -e
+
+echo "========================================="
+echo " Apache Tomcat 9 Installation Started"
+echo "========================================="
+
+# Variables
+TOMCAT_VERSION="9.0.108"
+TOMCAT_USER="tomcat"
+TOMCAT_HOME="/opt/tomcat"
+
+# Update repository cache
+dnf makecache
+
+# Install Java 17 and required packages
+dnf install -y java-17-openjdk java-17-openjdk-devel wget tar
+
+# Verify Java
+java -version
+
+# Create Tomcat User
+if ! id "$TOMCAT_USER" &>/dev/null; then
+    useradd -r -m -U -d ${TOMCAT_HOME} -s /bin/false ${TOMCAT_USER}
+fi
+
+# Download Tomcat
+cd /tmp
+
+wget https://downloads.apache.org/tomcat/tomcat-9/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz
+
+# Create Tomcat Directory
+mkdir -p ${TOMCAT_HOME}
+
+# Extract Tomcat
+tar -xzf apache-tomcat-${TOMCAT_VERSION}.tar.gz \
+-C ${TOMCAT_HOME} --strip-components=1
+
+# Permissions
+chown -R ${TOMCAT_USER}:${TOMCAT_USER} ${TOMCAT_HOME}
+chmod +x ${TOMCAT_HOME}/bin/*.sh
+
+# Create Systemd Service
+cat <<EOF > /etc/systemd/system/tomcat.service
+[Unit]
+Description=Apache Tomcat 9
+After=network.target
+
+[Service]
+Type=forking
+
+User=${TOMCAT_USER}
+Group=${TOMCAT_USER}
+
+Environment="JAVA_HOME=/usr/lib/jvm/java-17-openjdk"
+Environment="CATALINA_PID=${TOMCAT_HOME}/temp/tomcat.pid"
+Environment="CATALINA_HOME=${TOMCAT_HOME}"
+Environment="CATALINA_BASE=${TOMCAT_HOME}"
+
+ExecStart=${TOMCAT_HOME}/bin/startup.sh
+ExecStop=${TOMCAT_HOME}/bin/shutdown.sh
+
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload Systemd
+systemctl daemon-reload
+
+# Enable Service
+systemctl enable tomcat
+
+# Start Service
+systemctl start tomcat
+
+# Open Firewall Port
+firewall-cmd --permanent --add-port=8080/tcp || true
+firewall-cmd --reload || true
+
+# Verify Service
+systemctl status tomcat --no-pager
+
+echo "========================================="
+echo " Apache Tomcat 9 Installation Completed"
+echo "========================================="
