@@ -1,0 +1,19 @@
+sudo dnf update -y
+
+sudo dnf install -y java-21-openjdk java-21-openjdk-devel wget
+
+sudo wget -O /etc/yum.repos.d/jenkins.repo \
+https://pkg.jenkins.io/redhat-stable/jenkins.repo
+
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+sudo dnf install -y jenkins
+
+sudo systemctl daemon-reload
+sudo systemctl enable jenkins
+sudo systemctl start jenkins
+
+sudo firewall-cmd --permanent --add-port=8080/tcp
+sudo firewall-cmd --reload
+
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
