@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Apache Tomcat 10 Installation Script for Rocky Linux 9
+
+set -e
+
+echo "======================================="
+echo " Apache Tomcat Installation Started"
+echo "======================================="
+
+# Variables
+TOMCAT_VERSION="10.1.42"
+TOMCAT_USER="tomcat"
+TOMCAT_GROUP="tomcat"
+TOMCAT_HOME="/opt/tomcat"
+
+# Refresh repository cache
+dnf makecache
+
+# Install Java 21
+dnf install -y java-21-openjdk java-21-openjdk-devel wget tar
+
+# Verify Java
+java -version
+
+# Create Tomcat User
+groupadd -f ${TOMCAT_GROUP}
+
+if ! id ${TOMCAT_USER} >/dev/null 2>&1; then
+    useradd -r -m -U -d ${TOMCAT_HOME} -s /bin/false ${TOMCAT_USER}
+fi
+
+# Download Tomcat
+cd /tmp
+
+wget https://downloads.apache.org/tomcat/tomcat-10/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz
+
+# Extract Tomcat
+mkdir -p ${TOMCAT_HOME}
+
+tar -xzf apache-tomcat-${TOMCAT_VERSION}.tar.gz \
+-C ${TOMCAT_HOME} --strip-components=1
+
+# Set Ownership
+chown -R ${TOMCAT_USER}:${TOMCAT_GROUP} ${TOMCAT_HOME}
+
+# Permissions
+chmod +x ${TOMCAT_HOME}/bin/*.sh
+
+# Create Systemd Service
+cat <<EOF > /etc/systemd/system/tomcat.service
+[Unit]
+Description=Apache Tomcat Web Application Container
+After=network.target
+
+[Service]
+Type=forking
+
+User=${TOMCAT_USER}
+Group=${TOMCAT_GROUP}
+
+Environment="JAVA_HOME=/usr/lib/jvm/java-21-openjdk"
+Environment="CATALINA_PID=${TOMCAT_HOME}/temp/tomcat.pid"
+Environment="CATALINA_HOME=${TOMCAT_HOME}"
+Environment="CATALINA_BASE=${TOMCAT_HOME}"
+
+ExecStart=${TOMCAT_HOME}/bin/startup.sh
+ExecStop=${TOMCAT_HOME}/bin/shutdown.sh
+
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload Systemd
+systemctl daemon-reload
+
+# Enable and Start Tomcat
+systemctl enable tomcat
+systemctl start tomcat
+
+# Configure Firewall
+firewall-cmd --permanent --add-port=8080/tcp || true
+firewall-cmd --reload || true
+
+# Verify Service
+systemctl status tomcat --no-pager
+
+echo "======================================="
+echo " Apache Tomcat Installation Completed"
+echo "======================================="
