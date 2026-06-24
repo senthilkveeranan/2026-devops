@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Docker Installation Script for Rocky Linux 9
+
+set -e
+
+echo "======================================="
+echo " Docker Installation Started"
+echo "======================================="
+
+# Update repository metadata
+dnf makecache
+
+# Install required packages
+dnf install -y yum-utils device-mapper-persistent-data lvm2
+
+# Add Docker repository
+dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# Install Docker Engine
+dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Enable and Start Docker Service
+systemctl enable docker
+systemctl start docker
+
+# Verify Docker Service
+systemctl status docker --no-pager
+
+# Add vagrant user to docker group
+usermod -aG docker vagrant
+
+# Configure Firewall (Optional)
+firewall-cmd --permanent --add-masquerade || true
+firewall-cmd --reload || true
+
+# Docker Version
+docker --version
+
+echo "======================================="
+echo " Docker Installation Completed"
+echo "======================================="
