@@ -1,81 +1,46 @@
 ALL NODES
 ==========
-
 Step-1
 01-common.sh
-
-↓
-
 Step-2
 02-containerd.sh
-
-↓
-
 Step-3
 03-kubernetes.sh
 
 ========================
-
 MASTER ONLY
-
-↓
-
 Step-4
 04-master-init.sh
-
-↓
-
 Step-5
 06-calico.sh
 
 ========================
-
 WORKER-1
-
-↓
-
 Step-6
-05-worker-join.sh
+05-worker-join.sh  ====> manually we can join 
+kubeadm token create --print-join-command
+kubeadm join 192.168.56.101:6443 --token <copy the token>
 
 ========================
 
 WORKER-2
-
-↓
-
 Step-6
-05-worker-join.sh
+05-worker-join.sh====> manually we can join 
+kubeadm token create --print-join-command
+kubeadm join 192.168.56.101:6443 --token <copy the token>
 
 ========================
-
 MASTER ONLY
-
-↓
 
 Step-7
 07-verify.sh
-
-↓
-
 Step-8
 09-metallb.sh
-
-↓
-
 Step-9
 10-metrics-server.sh
-
-↓
-
 Step-10
 11-kubernetes-dashboard.sh
-
-↓
-
 Step-11
 12-install-helm.sh
-
-↓
-
 Step-12
 13-longhorn-storage.sh
