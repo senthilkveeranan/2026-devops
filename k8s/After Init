@@ -1,5 +1,6 @@
 
 
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.30.3/manifests/calico.yaml   ===> latest calico network 
 
 kubeadm init --apiserver-advertise-address=192.168.56.101 --pod-network-cidr=10.244.0.0/16   --- if you are using flannal use this pod address 
 
