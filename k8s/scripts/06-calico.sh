@@ -1,209 +1,55 @@
-################################################################################
-# Join Worker Node
-################################################################################
+#!/bin/bash
 
-echo
-echo -e "${BLUE}"
-echo "=================================================="
-echo "Joining Worker Node to Kubernetes Cluster"
-echo "=================================================="
-echo -e "${NC}"
+set -euo pipefail
 
-bash ${JOIN_FILE}
+GREEN="\033[1;32m"
+BLUE="\033[1;34m"
+RED="\033[1;31m"
+NC="\033[0m"
 
-################################################################################
-# Verify Join Status
-################################################################################
-
-if [ $? -ne 0 ]; then
-
-echo
-
-echo -e "${RED}"
-
-echo "Worker Join Failed."
-
-echo "Check kubelet logs."
-
-echo -e "${NC}"
-
-journalctl -u kubelet -n 50 --no-pager
-
-exit 1
-
-fi
-
-################################################################################
-# Restart kubelet
-################################################################################
-
-systemctl daemon-reload
-
-systemctl restart kubelet
-
-################################################################################
-# Wait for kubelet
-################################################################################
-
-echo
-echo "Waiting for kubelet..."
-
-sleep 20
-
-################################################################################
-# Verify kubelet Service
-################################################################################
-
-systemctl is-active --quiet kubelet
-
-if [ $? -ne 0 ]; then
-
-echo
-
-echo "kubelet Service Failed"
-
-journalctl -u kubelet -n 100 --no-pager
-
-exit 1
-
-fi
-
-################################################################################
-# Verify CRI Runtime
-################################################################################
-
-echo
-echo "Container Runtime"
-
-crictl info | grep runtimeName
-
-################################################################################
-# Verify Container Runtime Socket
-################################################################################
-
-echo
-
-ls -l /run/containerd/containerd.sock
-
-################################################################################
-# Wait for Node Registration
-################################################################################
-
-echo
-echo "Waiting for Worker Registration..."
-
-COUNT=0
-
-while true
-do
-
-COUNT=$((COUNT+1))
-
-STATUS=$(journalctl -u kubelet --no-pager -n 20 | \
-grep "Successfully registered node" | wc -l)
-
-if [ "$STATUS" -ge 1 ]; then
-    break
-fi
-
-echo "Attempt : ${COUNT}"
-
-sleep 10
-
-if [ "$COUNT" -ge 30 ]; then
-
-echo
-
-echo "Node Registration Timeout"
-
-journalctl -u kubelet -n 100 --no-pager
-
-exit 1
-
-fi
-
-done
-
-################################################################################
-# Display kubelet Status
-################################################################################
-
-echo
-
-systemctl status kubelet --no-pager
-
-################################################################################
-# Save Worker Information
-################################################################################
-
-cat >/root/worker-info.txt <<EOF
-
-=========================================
- Kubernetes Worker Information
-=========================================
-
-Hostname
-
-$(hostname)
-
-IP Address
-
-$(hostname -I)
-
-Container Runtime
-
-$(crictl info | grep runtimeName)
-
-Kubelet
-
-$(systemctl is-active kubelet)
-
-Date
-
-$(date)
-
-=========================================
-
-EOF
-
-################################################################################
-# Success Banner
-################################################################################
-
-echo
 echo -e "${GREEN}"
 echo "======================================================"
-echo " Worker Node Successfully Joined Kubernetes Cluster"
-echo "======================================================"
-echo
-echo "Verify from Master Node:"
-echo
-echo "kubectl get nodes"
-echo
-echo "kubectl get pods -A"
-echo
+echo " Installing Calico CNI"
 echo "======================================================"
 echo -e "${NC}"
+
 ################################################################################
-# Verify Calico DaemonSet
+# Verify kubectl
+################################################################################
+
+if ! command -v kubectl &>/dev/null; then
+    echo "kubectl not found."
+    exit 1
+fi
+
+################################################################################
+# Verify Cluster
+################################################################################
+
+kubectl cluster-info >/dev/null
+
+################################################################################
+# Install Calico
+################################################################################
+
+echo -e "${BLUE}Installing Calico...${NC}"
+
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml
+
+################################################################################
+# Wait for Calico
 ################################################################################
 
 echo
-echo -e "${GREEN}"
-echo "=============================================="
-echo "Calico DaemonSet"
-echo "=============================================="
-echo -e "${NC}"
+echo "Waiting for Calico Pods..."
 
-kubectl get daemonset -n kube-system
+kubectl rollout status daemonset/calico-node \
+-n kube-system \
+--timeout=300s
 
-################################################################################
-# Verify Calico Deployment
-################################################################################
-
-echo
-
-kubectl get deployment -n kube-system
+kubectl rollout status deployment/calico-kube-controllers \
+-n kube-system \
+--timeout=300s
 
 ################################################################################
 # Wait for CoreDNS
@@ -212,169 +58,49 @@ kubectl get deployment -n kube-system
 echo
 echo "Waiting for CoreDNS..."
 
-COUNT=0
-
-while true
-do
-
-COUNT=$((COUNT+1))
-
-READY=$(kubectl get pods -n kube-system \
---no-headers | grep coredns | grep Running | wc -l)
-
-if [ "$READY" -ge 2 ]; then
-    break
-fi
-
-echo "Attempt : ${COUNT}"
-
-sleep 10
-
-if [ "$COUNT" -ge 30 ]; then
-
-echo
-
-echo "CoreDNS Failed"
-
-kubectl get pods -n kube-system
-
-exit 1
-
-fi
-
-done
+kubectl wait \
+--for=condition=Ready \
+pod \
+-l k8s-app=kube-dns \
+-n kube-system \
+--timeout=300s
 
 ################################################################################
-# Verify Nodes
+# Verify Cluster
 ################################################################################
 
 echo
-echo -e "${GREEN}"
-echo "=============================================="
-echo "Node Status"
-echo "=============================================="
-echo -e "${NC}"
+echo "Nodes"
 
 kubectl get nodes -o wide
 
-################################################################################
-# Verify kube-system Pods
-################################################################################
-
 echo
+echo "System Pods"
 
 kubectl get pods -n kube-system -o wide
 
-################################################################################
-# Verify All Pods
-################################################################################
-
 echo
+echo "All Pods"
 
 kubectl get pods -A
 
-################################################################################
-# Verify Services
-################################################################################
-
 echo
+echo "Services"
 
 kubectl get svc -A
 
-################################################################################
-# Verify Cluster Information
-################################################################################
-
 echo
+echo "Cluster Info"
 
 kubectl cluster-info
 
 ################################################################################
-# Verify CNI Configuration
-################################################################################
-
-echo
-
-echo "CNI Configuration"
-
-ls -l /etc/cni/net.d/
-
-################################################################################
-# Verify Calico Interfaces
-################################################################################
-
-echo
-
-ip addr | grep cali || true
-
-################################################################################
-# Verify Routes
-################################################################################
-
-echo
-
-ip route
-
-################################################################################
-# Save Calico Information
-################################################################################
-
-cat >/root/calico-info.txt <<EOF
-
-======================================================
- Kubernetes Calico Information
-======================================================
-
-Installation Date
-
-$(date)
-
-Nodes
-
-$(kubectl get nodes)
-
-Calico Pods
-
-$(kubectl get pods -n kube-system | grep calico)
-
-CoreDNS
-
-$(kubectl get pods -n kube-system | grep coredns)
-
-Services
-
-$(kubectl get svc -A)
-
-======================================================
-
-EOF
-
-################################################################################
-# Success Banner
+# Success
 ################################################################################
 
 echo
 echo -e "${GREEN}"
 echo "======================================================"
-echo " Calico Installation Completed Successfully"
-echo "======================================================"
-echo
-echo "Cluster Status"
-echo
-
-kubectl get nodes
-
-echo
-
-kubectl get pods -A
-
-echo
-
-echo "Next Step"
-
-echo "./scripts/07-verify.sh"
-
-echo
-
+echo " Calico Installed Successfully"
 echo "======================================================"
 echo -e "${NC}"
