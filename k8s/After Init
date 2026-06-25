@@ -11,6 +11,9 @@ mkdir -p $HOME/.kube
 cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config
 
+AAL nodes containerd versin should validate 
+# rpm -qa | grep containerd   --> all nodes containerd version should be the same 
+│containerd-2.2.2-1.el9.x86_64
 
 kubeadm init --apiserver-advertise-address=192.168.56.101 --pod-network-cidr=192.168.0.0/16   ---- if you are using calico use this pod address 
 
@@ -28,6 +31,40 @@ rm -rf /var/lib/etcd
 systemctl daemon-reload
 systemctl restart kubelet
 systemctl restart containerd
+
+
+
+Error 1: Port 6443 is in use:
+============================
+ss -tulpn | grep 6443
+ps -ef | grep kube-apiserver
+
+Check its status:
+systemctl status containerd
+
+If it's not running, try:
+systemctl start containerd
+
+Then:
+systemctl enable containerd
+
+
+crictl ps -a
+If you see:
+kube-apiserver
+etcd
+kube-controller-manager
+kube-scheduler
+Remote them 
+crictl rm -f $(crictl ps -aq)
+
+Flush iptables (Recommended After Reset)
+iptables -F
+iptables -t nat -F
+iptables -t mangle -F
+iptables -X
+
+
 
 
 
