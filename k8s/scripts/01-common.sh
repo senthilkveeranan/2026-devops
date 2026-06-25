@@ -47,31 +47,19 @@ echo -e "${BLUE}Installing Common Packages...${NC}"
 
 dnf install -y \
 vim \
-nano \
 curl \
 wget \
-bash-completion \
 tar \
-gzip \
+git \
+bash-completion \
 net-tools \
 bind-utils \
-git \
-chrony \
 iproute \
-iproute-tc \
-conntrack-tools \
+iputils \
 socat \
-ebtables \
-ethtool \
-iptables \
-ipset \
-nfs-utils \
-rsync \
-unzip \
-jq \
-yum-utils \
-device-mapper-persistent-data \
-lvm2
+conntrack-tools \
+nmap-ncat \
+chrony
 
 ################################################################################
 # Disable SELinux
