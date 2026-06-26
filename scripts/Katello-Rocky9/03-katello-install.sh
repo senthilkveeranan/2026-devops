@@ -89,7 +89,7 @@ cat >/etc/yum.repos.d/katello.repo <<EOF
 
 [katello]
 name=Katello Repo
-baseurl=https://yum.theforeman.org/katello/4.16/el9/x86_64/
+baseurl=https://yum.theforeman.org/katello/4.16/katello/el9/x86_64/
 enabled=1
 gpgcheck=0
 
