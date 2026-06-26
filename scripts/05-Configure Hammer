@@ -1,0 +1,10 @@
+mkdir -p ~/.hammer
+
+cat > ~/.hammer/cli.modules.d/foreman.yml <<EOF
+:foreman:
+  :host: https://katello.lab.example.com
+  :username: admin
+  :password: changeme
+EOF
+
+chmod 600 ~/.hammer/cli.modules.d/foreman.yml
