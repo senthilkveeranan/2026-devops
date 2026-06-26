@@ -93,6 +93,16 @@ baseurl=https://yum.theforeman.org/katello/4.16/katello/el9/x86_64/
 enabled=1
 gpgcheck=0
 
+##################################################
+# Add Puppet 7 Repository
+##################################################
+
+echo "Adding Puppet 7 Repository"
+
+
+dnf install -y \
+https://yum.puppet.com/puppet7-release-el-9.noarch.rpm
+
 EOF
 
 
