@@ -1,0 +1,17 @@
+katello-lab/
+│
+├── 00-Vagrantfile
+│
+└── scripts/
+    ├── 01-update-hosts.sh
+    ├── 02-common.sh
+    ├── 03-katello-install.sh
+    ├── 04-create-org.sh
+    ├── 05-configure-hammer.sh
+    ├── 06-katello-configure.sh
+    ├── 07-sync-repositories.sh
+    ├── 08-create-content-view.sh
+    ├── 09-create-activation-key.sh
+    ├── 10-register-client1.sh
+    ├── 11-register-client2.sh
+    └── 12-verify-lab.sh
