@@ -1,0 +1,238 @@
+Kubernetes cluster on RHEL 9 VirtualBox VMs.
+
+Cluster
+
+kmaster    192.168.1.10
+kworker1   192.168.1.11
+kworker2   192.168.1.12
+OS         RHEL 9
+CRI        containerd
+CNI        Calico
+Kubernetes v1.30.x
+1. Common Script (Run on ALL nodes)
+
+Save as common.sh
+
+#!/bin/bash
+
+set -e
+
+echo "=============================="
+echo " Kubernetes Common Setup"
+echo "=============================="
+
+hostnamectl
+
+echo "Disable SELinux"
+setenforce 0 || true
+sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
+
+echo "Disable Swap"
+swapoff -a
+sed -i '/swap/d' /etc/fstab
+
+echo "Enable kernel modules"
+
+cat <<EOF >/etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+modprobe overlay
+modprobe br_netfilter
+
+echo "Kernel Parameters"
+
+cat <<EOF >/etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables=1
+net.bridge.bridge-nf-call-ip6tables=1
+net.ipv4.ip_forward=1
+EOF
+
+sysctl --system
+
+echo "Disable Firewall"
+
+systemctl disable --now firewalld || true
+
+echo "Install packages"
+
+dnf install -y \
+curl \
+wget \
+vim \
+git \
+bash-completion \
+tar \
+conntrack \
+socat
+
+echo "Install containerd"
+
+dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+dnf install -y containerd.io
+
+mkdir -p /etc/containerd
+
+containerd config default >/etc/containerd/config.toml
+
+sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' \
+/etc/containerd/config.toml
+
+systemctl enable containerd
+systemctl restart containerd
+
+echo "Install Kubernetes"
+
+cat <<EOF >/etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.30/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.30/rpm/repodata/repomd.xml.key
+EOF
+
+dnf install -y kubelet kubeadm kubectl
+
+systemctl enable kubelet
+
+echo "Completed"
+
+Execute
+
+chmod +x common.sh
+
+./common.sh
+
+Run on
+
+kmaster
+kworker1
+kworker2
+2. Master Initialization
+
+Save as master.sh
+
+#!/bin/bash
+
+set -e
+
+kubeadm init \
+--pod-network-cidr=192.168.0.0/16 \
+--apiserver-advertise-address=$(hostname -I | awk '{print $1}')
+
+mkdir -p $HOME/.kube
+
+cp /etc/kubernetes/admin.conf $HOME/.kube/config
+
+chown $(id -u):$(id -g) $HOME/.kube/config
+
+export KUBECONFIG=/etc/kubernetes/admin.conf
+
+echo "Install Calico"
+
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.29.3/manifests/calico.yaml
+
+echo ""
+echo "Cluster initialized."
+echo ""
+echo "Run below command on workers"
+echo ""
+kubeadm token create --print-join-command
+
+Run
+
+chmod +x master.sh
+
+./master.sh
+3. Worker Join
+
+On both workers execute
+
+kubeadm join <MASTER-IP>:6443 \
+--token <TOKEN> \
+--discovery-token-ca-cert-hash sha256:<HASH>
+
+Use the command printed by
+
+kubeadm token create --print-join-command
+4. Install MetalLB
+kubectl apply -f \
+https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
+
+Wait
+
+kubectl get pods -n metallb-system
+
+Create
+
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.1.240-192.168.1.250
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: advert
+  namespace: metallb-system
+
+Apply
+
+kubectl apply -f metallb.yaml
+5. Install Metrics Server
+helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server
+
+helm repo update
+
+helm install metrics-server metrics-server/metrics-server \
+-n kube-system \
+--set args="{--kubelet-insecure-tls,--kubelet-preferred-address-types=InternalIP\,Hostname,--kubelet-use-node-status-port}"
+
+Verify
+
+kubectl top nodes
+6. Verify Cluster
+kubectl get nodes
+
+kubectl get pods -A
+
+kubectl cluster-info
+
+kubectl get svc -A
+
+Expected:
+
+NAME        STATUS   ROLES           AGE
+kmaster     Ready    control-plane
+kworker1    Ready    <none>
+kworker2    Ready    <none>
+VirtualBox Network Requirements
+
+Ensure all three VMs are configured with:
+
+Adapter 1: NAT (for internet access)
+Adapter 2: Host-Only Adapter (or Bridged Adapter) for inter-node communication
+
+Assign static IPs on the second adapter, for example:
+
+kmaster   192.168.1.10
+kworker1  192.168.1.11
+kworker2  192.168.1.12
+
+Update /etc/hosts on all nodes:
+
+192.168.1.10 kmaster
+192.168.1.11 kworker1
+192.168.1.12 kworker2
+
+This setup provides a stable networking foundation for Kubernetes on VirtualBox.
+
+If you want a fully automated solution, I can also provide a 
+single k8s-install.sh script (around 300–400 lines) that configures everything end-to-end—including common setup, master initialization, worker joining (with SSH), Calico, MetalLB, Metrics Server, NGINX Ingress, and Helm—requiring minimal manual intervention.
