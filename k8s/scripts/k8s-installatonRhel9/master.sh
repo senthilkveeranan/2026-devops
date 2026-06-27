@@ -2,9 +2,17 @@
 
 set -e
 
+MASTER_IP="192.168.56.101"
+POD_CIDR="192.168.0.0/16"
+
+echo "Initializing Kubernetes Control Plane..."
+echo "Master IP : ${MASTER_IP}"
+echo "Pod CIDR  : ${POD_CIDR}"
+
 kubeadm init \
---pod-network-cidr=192.168.0.0/16 \
---apiserver-advertise-address=$(hostname -I | awk '{print $1}')
+  --apiserver-advertise-address=${MASTER_IP} \
+  --control-plane-endpoint=${MASTER_IP}:6443 \
+  --pod-network-cidr=${POD_CIDR}
 
 mkdir -p $HOME/.kube
 
@@ -14,13 +22,17 @@ chown $(id -u):$(id -g) $HOME/.kube/config
 
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
-echo "Install Calico"
+echo "Installing Calico..."
 
 kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.29.3/manifests/calico.yaml
 
 echo ""
-echo "Cluster initialized."
+echo "==========================================="
+echo " Kubernetes Cluster Initialized Successfully"
+echo "==========================================="
 echo ""
-echo "Run below command on workers"
+
+echo "Worker Join Command:"
 echo ""
+
 kubeadm token create --print-join-command
