@@ -1,0 +1,174 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+  # ---------------------------------------------------------
+  # Base Configuration
+  # ---------------------------------------------------------
+  config.vm.box = "rhel9"
+  config.ssh.insert_key = false
+
+  MACHINES = {
+
+    "ansible-aap" => {
+      hostname: "ansible-aap.example.com",
+      ip: "192.168.56.50",
+      memory: 18432,
+      cpus: 2
+    },
+
+    "node1" => {
+      hostname: "node1.example.com",
+      ip: "192.168.56.51",
+      memory: 1024,
+      cpus: 1
+    },
+
+    "node2" => {
+      hostname: "node2.example.com",
+      ip: "192.168.56.52",
+      memory: 1024,
+      cpus: 1
+    }
+
+  }
+
+  MACHINES.each do |name, machine|
+
+    config.vm.define name do |node|
+
+      node.vm.hostname = machine[:hostname]
+
+      node.vm.network "private_network",
+        ip: machine[:ip]
+
+      node.vm.provider "virtualbox" do |vb|
+        vb.name = name
+        vb.memory = machine[:memory]
+        vb.cpus = machine[:cpus]
+      end
+
+      node.vm.provision "shell", inline: <<-SHELL
+
+############################################################
+# Hostname
+############################################################
+
+hostnamectl set-hostname #{machine[:hostname]}
+
+############################################################
+# /etc/hosts
+############################################################
+
+cat >/etc/hosts <<EOF
+127.0.0.1   localhost localhost.localdomain
+::1         localhost localhost.localdomain
+
+192.168.56.50 ansible-aap.example.com ansible-aap
+192.168.56.51 node1.example.com node1
+192.168.56.52 node2.example.com node2
+EOF
+
+############################################################
+# Root Password
+############################################################
+
+echo root | passwd --stdin root
+
+############################################################
+# Create Jack User
+############################################################
+
+id jack >/dev/null 2>&1 || useradd -m jack
+
+echo jack | passwd --stdin jack
+
+echo "jack ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/jack
+
+chmod 440 /etc/sudoers.d/jack
+
+############################################################
+# Install Common Packages
+############################################################
+
+dnf install -y \
+vim \
+wget \
+curl \
+git \
+tar \
+zip \
+unzip \
+net-tools \
+bind-utils \
+bash-completion \
+python3 \
+python3-pip \
+openssh-clients
+
+############################################################
+# Generate Root SSH Key
+############################################################
+
+mkdir -p /root/.ssh
+chmod 700 /root/.ssh
+
+if [ ! -f /root/.ssh/id_rsa ]; then
+    ssh-keygen -q -t rsa -N "" -f /root/.ssh/id_rsa
+fi
+
+cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
+
+############################################################
+# Copy Root Keys to Jack
+############################################################
+
+mkdir -p /home/jack/.ssh
+
+cp /root/.ssh/id_rsa /home/jack/.ssh/
+cp /root/.ssh/id_rsa.pub /home/jack/.ssh/
+cp /root/.ssh/authorized_keys /home/jack/.ssh/
+
+chmod 700 /home/jack/.ssh
+chmod 600 /home/jack/.ssh/id_rsa
+chmod 644 /home/jack/.ssh/id_rsa.pub
+chmod 600 /home/jack/.ssh/authorized_keys
+
+chown -R jack:jack /home/jack/.ssh
+
+############################################################
+# Disable SSH Host Key Checking
+############################################################
+
+cat >/etc/ssh/ssh_config <<EOF
+Host *
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+EOF
+
+############################################################
+# SSH Service
+############################################################
+
+systemctl enable sshd
+systemctl restart sshd
+
+############################################################
+# Finished
+############################################################
+
+echo "=========================================="
+echo "Provisioning Completed Successfully"
+echo "Hostname : #{machine[:hostname]}"
+echo "IP       : #{machine[:ip]}"
+echo "=========================================="
+
+      SHELL
+
+    end
+  end
+
+end
