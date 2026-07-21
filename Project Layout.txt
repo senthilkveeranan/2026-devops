@@ -1,0 +1,56 @@
+Project Layout
+===========
+DevOps-Lab/
+│
+├── Vagrantfile
+│
+├── scripts/
+│   ├── 01-common.sh
+│   ├── 02-docker.sh
+│   ├── 03-k3s.sh
+│   ├── 04-helm.sh
+│   ├── 05-ansible.sh
+│   ├── 06-terraform.sh
+│   ├── 07-jenkins.sh
+│   ├── 08-sonarqube.sh
+│   ├── 09-nexus.sh
+│   ├── 10-monitoring.sh
+│   └── 11-verify.sh
+│
+├── compose/
+│
+├── manifests/
+│
+└── README.md
+
+
+
+Part Order
+Part 1 → 01-common.sh
+Part 2 → 02-docker.sh
+Part 3 → 03-k3s.sh
+Part 4 → 04-helm.sh
+Part 5 → 05-ansible.sh
+Part 6 → 06-terraform.sh
+Part 7 → 07-jenkins.sh
+Part 8 → 08-sonarqube.sh
+Part 9 → 09-nexus.sh
+Part 10 → 10-monitoring.sh
+Part 11 → 11-verify.sh
+Part 12 → Docker Compose, Kubernetes YAMLs, README, CI/CD Demo
+
+
+   +-----------------------+
+                |  Ansible Control Node |
+                |  (Ansible Installed)  |
+                +----------+------------+
+                           |
+        ---------------------------------------------
+        |            |            |          |
+     Jenkins      Docker      Kubernetes    Web
+     Managed      Managed       Managed    Managed
+      Node         Node          Node       Node
+
+
+
+

@@ -1,0 +1,23 @@
+kubectl create namespace jenkins --dry-run=client -o yaml | kubectl apply -f -
+
+helm repo add jenkins https://charts.jenkins.io
+
+helm repo update
+
+helm upgrade --install jenkins jenkins/jenkins \
+  -n jenkins \
+  -f values.yaml
+
+
+Verify jenkins
+===========
+kubectl get pods -n jenkins
+
+kubectl get svc -n jenkins
+
+kubectl get pvc -n jenkins
+
+helm list -n jenkins
+
+
+kubectl get secret -n jenkins
